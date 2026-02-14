@@ -135,3 +135,43 @@ If mismatch:
 - Event-sourced ledger vs balance-updating ledger
 - Real-time settlement vs batch posting
 - Strong consistency vs eventual consistency
+
+---
+
+## Event-Sourced Ledger Model (Recommended)
+
+### Core Tables / Objects
+
+1. **Journal Entries**
+   - Immutable rows (append-only)
+   - Each row has:
+     - entry_id
+     - transaction_id (idempotency key)
+     - timestamp
+     - debit_account
+     - credit_account
+     - amount
+     - currency
+     - state (pending/settled/reversed)
+     - metadata (rail, counterparty, reference)
+
+2. **Transaction Record**
+   - Groups multiple journal entries into a single logical transaction
+   - Tracks lifecycle state transitions
+
+3. **Balance Views (Derived)**
+   - Computed by summing journal entries per account
+   - Cached in a materialized view for performance
+
+### Why This Helps Regulated Fintech
+
+- Full audit trail (no hidden mutations)
+- Easy reconciliation and dispute investigation
+- Can rebuild balances from scratch if needed
+- Strong safety against silent corruption
+
+### Performance Strategy
+
+- Write path: append journal entry + update cached balance (optional)
+- Read path: read cached balance + verify against journal periodically
+- Nightly batch: recompute balances from journal as integrity check
